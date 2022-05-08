@@ -29,13 +29,22 @@ pipeline {
             }
         }
 
-      stage('Deploy App') {
-            steps {
-                script {
-                    kubernetesDeploy(configs: "hellowhale.yml", kubeconfigId: "mykubeconfig")
-                 }
-             }
-          }
+      stage("SSH Into k8s Server") {
+        def remote = [:]
+        remote.name = 'kube-master'
+        remote.host = '192.168.1.2'
+        remote.user = 'ubuntu'
+        remote.password = 'password'
+        remote.allowAnyHosts = true
+
+        stage('Put hellowhale.yml onto kube-master') {
+            sshPut remote: remote, from: 'hellowhale.yml', into: '.'
+        }
+
+        stage('Deploy App') {
+          sshCommand remote: remote, command: "kubectl apply -f hellowhale.yml"
+        }
+       }
 
      }
 
